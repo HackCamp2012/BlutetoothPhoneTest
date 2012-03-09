@@ -13,6 +13,7 @@ import javax.bluetooth.RemoteDevice;
 import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
+
 import com.sun.midp.io.j2me.btgoep.BTGOEPConnection;
 import com.sun.midp.io.j2me.btl2cap.BTL2CAPConnection;
  
@@ -22,7 +23,7 @@ public class BluetoothClient implements Runnable {
     private InquiryListener listener;
     private String deviceName;
     private boolean listening = true;
-    private BTL2CAPConnection con;
+    private BTGOEPConnection con;
     private Main main;
     
     public BluetoothClient(Main m){
@@ -71,7 +72,7 @@ public class BluetoothClient implements Runnable {
                 String url;
                 url = listener.service.getConnectionURL(0, false);
                 deviceName = LocalDevice.getLocalDevice().getFriendlyName();
-                con = (BTL2CAPConnection) Connector.open( url );
+                con = (BTGOEPConnection) Connector.open( url );
                 Main.log("sending greeting...");
                 send(("Hello server, my name is: " + LocalDevice.getLocalDevice().getFriendlyName()).getBytes());
                 Main.log("now listen in new Thread");
@@ -93,11 +94,11 @@ public class BluetoothClient implements Runnable {
 		byte[] b = new byte[1000];
         while (listening) {            
     		try {
-    			if (con.ready()){
-    				con.receive(b);
-    			    String s = new String(b, 0, b.length);
-                    Main.log("Received from server: " + s.trim());	
-    			}
+    			
+				con.read(b);
+			    String s = new String(b, 0, b.length);
+                Main.log("Received from server: " + s.trim());	
+    			
 				
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -108,7 +109,7 @@ public class BluetoothClient implements Runnable {
     
     public void send(byte[] b){
     	try {
-			con.send(b);
+			con.write(b,b.length);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
