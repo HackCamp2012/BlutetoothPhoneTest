@@ -1,6 +1,7 @@
 
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.Vector;
 import javax.bluetooth.BluetoothStateException;
@@ -13,6 +14,7 @@ import javax.bluetooth.RemoteDevice;
 import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
+import javax.microedition.io.StreamConnection;
 
 import com.sun.midp.io.j2me.btgoep.BTGOEPConnection;
 import com.sun.midp.io.j2me.btl2cap.BTL2CAPConnection;
@@ -23,7 +25,7 @@ public class BluetoothClient implements Runnable {
     private InquiryListener listener;
     private String deviceName;
     private boolean listening = true;
-    private BTGOEPConnection con;
+    private StreamConnection con;
     private Main main;
     
     public BluetoothClient(Main m){
@@ -72,7 +74,7 @@ public class BluetoothClient implements Runnable {
                 String url;
                 url = listener.service.getConnectionURL(0, false);
                 deviceName = LocalDevice.getLocalDevice().getFriendlyName();
-                con = (BTGOEPConnection) Connector.open( url );
+                con = (StreamConnection) Connector.open(url);
                 Main.log("sending greeting...");
                 send(("Hello server, my name is: " + LocalDevice.getLocalDevice().getFriendlyName()).getBytes());
                 Main.log("now listen in new Thread");
@@ -92,24 +94,32 @@ public class BluetoothClient implements Runnable {
 
 	public void run() {
 		byte[] b = new byte[1000];
-        while (listening) {            
-    		try {
-    			
-				con.read(b);
-			    String s = new String(b, 0, b.length);
-                Main.log("Received from server: " + s.trim());	
-    			
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-        }
+		InputStream is;
+		try {
+			is = con.openInputStream();
+		
+	        while (listening) {            
+	    		try {
+	    			
+					is.read(b);
+				    String s = new String(b, 0, b.length);
+	                Main.log("Received from server: " + s.trim());	
+	    			
+					
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+	        }
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
         
 	}
-    
+
     public void send(byte[] b){
+
     	try {
-			con.write(b,b.length);
+        	con.openOutputStream().write(b);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
