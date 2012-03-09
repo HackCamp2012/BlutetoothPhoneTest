@@ -2,6 +2,7 @@
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.Vector;
 import javax.bluetooth.BluetoothStateException;
@@ -27,7 +28,8 @@ public class BluetoothClient implements Runnable {
     private boolean listening = true;
     private StreamConnection con;
     private Main main;
-    
+    private InputStream in;
+    private OutputStream out;
     public BluetoothClient(Main m){
     	this.main = m;
     }
@@ -68,20 +70,23 @@ public class BluetoothClient implements Runnable {
         } catch (BluetoothStateException e) {
         	Main.log(e.toString());
         }
- 
+        Main.log("connect...");
         if (listener.service!=null){
             try {
                 String url;
                 url = listener.service.getConnectionURL(0, false);
                 deviceName = LocalDevice.getLocalDevice().getFriendlyName();
                 con = (StreamConnection) Connector.open(url);
-                Main.log("sending greeting...");
-                send(("Hello server, my name is: " + LocalDevice.getLocalDevice().getFriendlyName()).getBytes());
+                in = con.openInputStream();
+                out = con.openOutputStream();
+                
                 Main.log("now listen in new Thread");
                 Thread t = new Thread(this);
                 t.start();
+                Main.log("sending greeting...");
+                send("Hello server".getBytes());
             } catch (IOException g) {
-            	Main.log(g.toString());
+            	Main.log("error1 "+g.toString());
             }
         }else{
         	Main.log("no service!");
@@ -94,24 +99,21 @@ public class BluetoothClient implements Runnable {
 
 	public void run() {
 		byte[] b = new byte[1000];
-		InputStream is;
-		try {
-			is = con.openInputStream();
 		
-	        while (listening) {            
-	    		try {
-	    			
-					is.read(b);
-				    String s = new String(b, 0, b.length);
-	                Main.log("Received from server: " + s.trim());	
-	    			
-					
-				} catch (IOException e) {
-					e.printStackTrace();
+		while (listening) {            
+			try {
+				
+				in.read(b);
+				if (b == new byte[]{}){
+					break;
 				}
-	        }
-		} catch (IOException e1) {
-			e1.printStackTrace();
+			    String s = new String(b, 0, b.length);
+		        Main.log("Received from server: " + s.trim());	
+				
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
         
 	}
@@ -119,7 +121,8 @@ public class BluetoothClient implements Runnable {
     public void send(byte[] b){
 
     	try {
-        	con.openOutputStream().write(b);
+        	out.write(b);
+        	out.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
