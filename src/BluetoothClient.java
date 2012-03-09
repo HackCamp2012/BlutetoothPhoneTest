@@ -103,8 +103,8 @@ public class BluetoothClient implements Runnable {
 		while (listening) {            
 			try {
 				
-				in.read(b);
-				if (b == new byte[]{}){
+				if (in.read(b)==-1){
+					//exit
 					break;
 				}
 			    String s = new String(b, 0, b.length);
