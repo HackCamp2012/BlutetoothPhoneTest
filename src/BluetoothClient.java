@@ -14,6 +14,7 @@ import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
 import com.sun.midp.io.j2me.btgoep.BTGOEPConnection;
+import com.sun.midp.io.j2me.btl2cap.BTL2CAPConnection;
  
 
 public class BluetoothClient implements Runnable {
@@ -21,9 +22,9 @@ public class BluetoothClient implements Runnable {
     private InquiryListener listener;
     private String deviceName;
     private boolean listening = true;
-    private BTGOEPConnection con;
+    private BTL2CAPConnection con;
     private Main main;
-    /** Creates a new instance of BluetoothClient */
+    
     public BluetoothClient(Main m){
     	this.main = m;
     }
@@ -49,18 +50,18 @@ public class BluetoothClient implements Runnable {
             
             while( devices.hasMoreElements() ) {
                 synchronized(listener)	{
-                	Main.log("loop1");
+                	//Main.log("loop1");
                     disc_agent.searchServices(attrbs, u, (RemoteDevice)devices.nextElement(), listener);
-                    Main.log("loop2");
+                    //Main.log("loop2");
                     try {
                     	listener.wait();
                     } catch(InterruptedException e){
                     	Main.log(e.toString());
                     }
-                    Main.log("loop3");
+                    //Main.log("loop3");
                 }
             }
-            Main.log("loop end");
+            //Main.log("loop end");
         } catch (BluetoothStateException e) {
         	Main.log(e.toString());
         }
@@ -70,7 +71,7 @@ public class BluetoothClient implements Runnable {
                 String url;
                 url = listener.service.getConnectionURL(0, false);
                 deviceName = LocalDevice.getLocalDevice().getFriendlyName();
-                con = (BTGOEPConnection) Connector.open( url );
+                con = (BTL2CAPConnection) Connector.open( url );
                 Main.log("sending greeting...");
                 send(("Hello server, my name is: " + LocalDevice.getLocalDevice().getFriendlyName()).getBytes());
                 Main.log("now listen in new Thread");
@@ -92,9 +93,12 @@ public class BluetoothClient implements Runnable {
 		byte[] b = new byte[1000];
         while (listening) {            
     		try {
-				con.read(b);
-			    String s = new String(b, 0, b.length);
-                Main.log("Received from server: " + s.trim());
+    			if (con.ready()){
+    				con.receive(b);
+    			    String s = new String(b, 0, b.length);
+                    Main.log("Received from server: " + s.trim());	
+    			}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -104,7 +108,7 @@ public class BluetoothClient implements Runnable {
     
     public void send(byte[] b){
     	try {
-			con.write(b,b.length);
+			con.send(b);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
